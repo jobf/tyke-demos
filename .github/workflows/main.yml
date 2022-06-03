@@ -1,0 +1,61 @@
+name: CI
+
+on: [push, pull_request, repository_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        persist-credentials: false
+    - uses: lix-pm/setup-lix@master
+    - uses: HaxeFlixel/setup-flixel@master
+      with:
+        haxe-version: stable
+        flixel-versions: release
+        target: html5
+    - name: Setup
+      run: |
+        haxelib install json2object
+        git clone https://github.com/maitag/peote-view.git
+        haxelib dev peote-view peote-view
+        #
+        git clone https://github.com/maitag/peote-text.git
+        haxelib dev peote-text peote-text
+        #
+        haxelib install hxmath
+        git clone https://github.com/AustinEast/echo.git
+        haxelib dev echo echo
+        #
+        git clone https://github.com/jobf/ob.gum.git
+        haxelib dev ob.gum ob.gum
+        #
+        git clone https://github.com/maitag/input2action.git
+        haxelib dev input2action input2action
+        #
+        # ldtk dependencies
+        haxelib git deepnightLibs https://github.com/deepnight/deepnightLibs.git
+        haxelib git heaps https://github.com/HeapsIO/heaps.git
+        haxelib git ldtk-haxe-api https://github.com/deepnight/ldtk-haxe-api.git
+        #
+        git clone https://github.com/jobf/tyke.git
+        haxelib dev tyke tyke
+    - name: Build
+      run: |
+        haxelib run lime build shapes/project.xml --app-path=../bin-shapes html5 -final
+        haxelib run lime build glyphs/project.xml --app-path=../bin-glyphs html5 -final
+        haxelib run lime build cascade/project.xml --app-path=../bin-cascade html5 -final
+        haxelib run lime build monocave/project.xml --app-path=../bin-monocave html5 -final
+        haxelib run lime build TYKE/project.xml --app-path=../bin html5 -final
+        cp -a ./bin-shapes/html5/bin ./bin/html5/bin/shapes
+        cp -a ./bin-glyphs/html5/bin ./bin/html5/bin/glyphs
+        cp -a ./bin-cascade/html5/bin ./bin/html5/bin/cascade
+        cp -a ./bin-monocave/html5/bin ./bin/html5/bin/monocave
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        publish_dir: ./bin/html5/bin
+        force_orphan: true
+      if: github.ref == 'refs/heads/master'
